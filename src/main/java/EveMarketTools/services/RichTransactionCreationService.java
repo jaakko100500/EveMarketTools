@@ -7,7 +7,7 @@ import com.beimin.eveapi.character.wallet.transactions.WalletTransactionsParser;
 import com.beimin.eveapi.exception.ApiException;
 import com.beimin.eveapi.shared.wallet.transactions.ApiWalletTransaction;
 import com.beimin.eveapi.shared.wallet.transactions.WalletTransactionsResponse;
-import org.codehaus.jackson.map.ObjectMapper;
+import com.google.common.collect.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,19 +15,13 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.stereotype.Component;
 
 import javax.transaction.Transactional;
-import java.io.File;
-import java.io.IOException;
 import java.util.*;
 
 @Component
 public class RichTransactionCreationService {
     private static final long EVE_API_POLL_INTERVAL = 60000L;
-    private static final String MAP_SERIALIZATION_PATH = "map.json";
     private static Logger logger = LoggerFactory.getLogger(RichTransactionCreationService.class);
-    private Date lastProcessedTransactionDate = null;
     private Date eveApiCachedUntil = null;
-    private RepeatableStackMap<Integer, ApiWalletTransaction> repeatableStackMap = new RepeatableStackMap<Integer, ApiWalletTransaction>();
-    private ObjectMapper objectMapper = new ObjectMapper();
 
     @Autowired
     private EveApiAuthService eveApiAuthService;
@@ -35,59 +29,141 @@ public class RichTransactionCreationService {
     @Autowired
     private RichTransactionRepository richTransactionRepository;
 
-    public void startCreatingTransactions() throws IOException {
+    public void startCreatingTransactions() {
         ThreadPoolTaskScheduler taskScheduler = new ThreadPoolTaskScheduler();
         taskScheduler.setPoolSize(1);
         taskScheduler.initialize();
-        taskScheduler.scheduleWithFixedDelay(this::getNewRichTransactions, EVE_API_POLL_INTERVAL);
+        taskScheduler.scheduleWithFixedDelay(this::doThings, EVE_API_POLL_INTERVAL);
 
-        lastProcessedTransactionDate = richTransactionRepository.findLastTransactionDate();
-        logger.info("Starting to update with last processed transaction date {}",lastProcessedTransactionDate);
-
-        File file = new File(MAP_SERIALIZATION_PATH);
-        if (repeatableStackMap.isEmpty() && file.exists()) {
-            repeatableStackMap = objectMapper.readValue(file, RepeatableStackMap.class);
-        }
-        else {
-            file.createNewFile();
-        }
+        logger.info("Starting to update");
     }
 
     @Transactional
-    public void getNewRichTransactions() {
+    public void doThings() {
+
         try {
             Set<ApiWalletTransaction> apiWalletTransactions = getApiJournalEntries();
-            List<ApiWalletTransaction> sortedApiWalletTransactions = new ArrayList<>(apiWalletTransactions);
-            Collections.sort(sortedApiWalletTransactions, (o1, o2) -> o1.getTransactionDateTime().compareTo(o2.getTransactionDateTime()));
-
-            List<RichTransaction> richTransactions = new ArrayList<>(apiWalletTransactions.size());
-
-            for (ApiWalletTransaction walletTransaction : sortedApiWalletTransactions) {
-                if (lastProcessedTransactionDate == null || walletTransaction.getTransactionDateTime().compareTo(lastProcessedTransactionDate) > 0) {
-                    RichTransaction richTransaction = new RichTransaction(walletTransaction);
-
-                    if (richTransaction.transactionType == TransactionTypeEnum.BUY) {
-                        repeatableStackMap.put(walletTransaction.getTypeID(), new Long(walletTransaction.getQuantity()), walletTransaction);
-
-                    } else {
-                        List<QueueEntry<ApiWalletTransaction>> buyTransactions = repeatableStackMap.take(walletTransaction.getTypeID(), new Long(walletTransaction.getQuantity()));
-                        richTransaction.setFeesAndBuyPrice(buyTransactions);
-                    }
-
-                    richTransactions.add(richTransaction);
-                    lastProcessedTransactionDate = walletTransaction.getTransactionDateTime();
-                }
+            if (!apiWalletTransactions.isEmpty()) {
+                createNewRichTransactions(apiWalletTransactions);
+                fillBuyPrices();
             }
-
-            Collections.sort(richTransactions, (o1, o2) -> o2.transactionDate.compareTo(o1.transactionDate));
-
-            richTransactionRepository.save(richTransactions);
-
-            logger.info("{} new RichTransactions processed.",richTransactions.size());
-            objectMapper.writeValue(new File(MAP_SERIALIZATION_PATH), repeatableStackMap);
-        } catch (Exception e) {
+        } catch (ApiException e) {
             logger.error("Error: {}", e);
         }
+    }
+
+    private static class YoKey {
+        public String typeName;
+        public TransactionTypeEnum transactionType;
+
+        public YoKey(RichTransaction richTransaction) {
+            this(richTransaction.typeName, richTransaction.transactionType);
+        }
+
+        public YoKey(String typeName, TransactionTypeEnum transactionType) {
+            this.typeName = typeName;
+            this.transactionType = transactionType;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (super.equals(obj)) {
+                return true;
+            }
+
+            if (obj instanceof YoKey) {
+                YoKey other = (YoKey) obj;
+                return this.transactionType.equals(other.transactionType) && this.typeName.equals(other.typeName);
+            }
+
+            return false;
+        }
+
+        @Override
+        public int hashCode() {
+            return com.google.common.base.Objects.hashCode(this.transactionType, this.typeName);
+        }
+
+        @Override
+        public String toString() {
+            return String.format("[%s, %s]", transactionType, typeName);
+        }
+    }
+
+    private void fillBuyPrices() {
+        List<RichTransaction> unprocessedRichTransactions = richTransactionRepository.findUnprocessedOrders();
+
+        ListMultimap<YoKey, RichTransaction> richTransactionsByTypeName = ArrayListMultimap.create();
+        for (RichTransaction unprocessedRichTransaction : unprocessedRichTransactions) {
+            richTransactionsByTypeName.put(new YoKey(unprocessedRichTransaction), unprocessedRichTransaction);
+        }
+
+
+        for (RichTransaction unprocessedRichTransaction : unprocessedRichTransactions) {
+            logger.info("Processing {}",unprocessedRichTransaction.typeName);
+            if (unprocessedRichTransaction.transactionType == TransactionTypeEnum.SELL) {
+                RichTransaction sellRichTransaction = unprocessedRichTransaction;
+                YoKey yoKey = new YoKey(sellRichTransaction.typeName, TransactionTypeEnum.BUY);
+                List<RichTransaction> buyRichTransactions = richTransactionsByTypeName.get(yoKey);
+
+                int sellQuantityLeft = sellRichTransaction.quantity;
+                for (RichTransaction buyRichTransaction : buyRichTransactions) {
+                    if (buyRichTransaction.transactionDate.compareTo(sellRichTransaction.transactionDate) > 0) {
+                        continue;
+                    }
+                    if (sellQuantityLeft <= buyRichTransaction.unprocessedQuantity) {
+                        sellRichTransaction.buyPrice += sellQuantityLeft * buyRichTransaction.price;
+                        buyRichTransaction.unprocessedQuantity -= sellQuantityLeft;
+                        sellQuantityLeft = 0;
+
+                        sellRichTransaction.debug += "B" + buyRichTransaction.price;
+                    } else if (buyRichTransaction.unprocessedQuantity > 0) {
+                        sellRichTransaction.buyPrice += buyRichTransaction.unprocessedQuantity * buyRichTransaction.price;
+                        sellQuantityLeft -= buyRichTransaction.unprocessedQuantity;
+                        buyRichTransaction.unprocessedQuantity = 0;
+
+                        sellRichTransaction.debug += "B" + buyRichTransaction.price;
+                    }
+
+
+                    if (sellQuantityLeft == 0) {
+                        break;
+                    }
+                }
+
+                if (sellQuantityLeft > 0) {
+                    sellRichTransaction.debug += "Could not find enough buy transactions!";
+                    sellRichTransaction.buyPrice+=sellQuantityLeft * sellRichTransaction.price;
+                }
+
+                sellRichTransaction.unprocessedQuantity = 0;
+                richTransactionRepository.save(buyRichTransactions);
+                richTransactionRepository.save(sellRichTransaction);
+            }
+        }
+    }
+
+
+    private void createNewRichTransactions(Set<ApiWalletTransaction> apiWalletTransactions) {
+        Date lastProcessedTransactionDate = richTransactionRepository.findLastTransactionDate();
+
+        List<ApiWalletTransaction> sortedApiWalletTransactions = new ArrayList<>(apiWalletTransactions);
+        Collections.sort(sortedApiWalletTransactions, (o1, o2) -> o1.getTransactionDateTime().compareTo(o2.getTransactionDateTime()));
+
+        List<RichTransaction> richTransactions = new ArrayList<>(apiWalletTransactions.size());
+
+        for (ApiWalletTransaction walletTransaction : sortedApiWalletTransactions) {
+            if (lastProcessedTransactionDate == null || walletTransaction.getTransactionDateTime().compareTo(lastProcessedTransactionDate) > 0) {
+                RichTransaction richTransaction = new RichTransaction(walletTransaction);
+                richTransactions.add(richTransaction);
+            }
+        }
+
+        Collections.sort(richTransactions, (o1, o2) -> o2.transactionDate.compareTo(o1.transactionDate));
+
+        richTransactionRepository.save(richTransactions);
+
+        logger.info("{} new RichTransactions processed.", richTransactions.size());
     }
 
     private Set<ApiWalletTransaction> getApiJournalEntries() throws ApiException {

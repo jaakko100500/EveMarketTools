@@ -1,14 +1,15 @@
 package EveMarketTools.domain;
 
-import EveMarketTools.services.QueueEntry;
 import com.beimin.eveapi.shared.wallet.transactions.ApiWalletTransaction;
 
 import javax.persistence.Entity;
 import javax.persistence.Id;
+import javax.persistence.Index;
+import javax.persistence.Table;
 import java.util.Date;
-import java.util.List;
 
 @Entity
+@Table(indexes = @Index(columnList = "transactionDate"))
 public class RichTransaction {
     @Id
     private Long id;
@@ -26,6 +27,9 @@ public class RichTransaction {
     public double transactionTax;
     public double buyPrice;
 
+    public int unprocessedQuantity;
+    public String debug;
+
     protected RichTransaction() {
 
     }
@@ -40,19 +44,11 @@ public class RichTransaction {
         this.clientName = walletTransaction.getClientName();
         this.transactionType = walletTransaction.getTransactionType().equals("buy") ? TransactionTypeEnum.BUY : TransactionTypeEnum.SELL;
 
-        this.brokerFee =0d;
-        this.transactionTax=0d;
-        this.buyPrice=0d;
-    }
+        this.unprocessedQuantity = quantity;
+        this.debug="";
 
-    public void setFeesAndBuyPrice(List<QueueEntry<ApiWalletTransaction>> buyTransactions) {
-        this.brokerFee=0d;
-
-        for (QueueEntry<ApiWalletTransaction> buyTransaction : buyTransactions) {
-            double buyPrice = buyTransaction.amount * buyTransaction.object.getPrice();
-            this.buyPrice+= buyPrice;
-            this.brokerFee+= buyPrice* BROKER_FEE_PERCENT;
-            this.transactionTax+=this.quantity*this.price* TRANSACTION_TAX_PERCENT;
-        }
+        this.brokerFee = 0.0075d;
+        this.transactionTax = 0.0075d;
+        this.buyPrice = 0d;
     }
 }
