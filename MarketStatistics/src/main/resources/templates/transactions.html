@@ -1,0 +1,39 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Transactions</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <link href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap.min.css" rel="stylesheet"/>
+    <link th:href="@{/css/transaction-style.css}" rel="stylesheet" media="screen"/>
+</head>
+<body>
+<table class="table">
+    <tr>
+        <th>Date</th>
+        <th>Type</th>
+        <th>Qty</th>
+        <th>Price</th>
+        <th>Total price</th>
+        <th>Profit</th>
+        <th>Buy/Sell</th>
+        <th>Client</th>
+        <th>Debug</th>
+    </tr>
+    <tr th:each="item : ${list}" class="transaction-row"
+        th:classappend="${#strings.equals(item.transactionType,'BUY')}? 'transaction-row-buy':'transaction-row-sell'">
+        <td th:text="${item.transactionDate}">-</td>
+        <td ><a th:href="${'transactions?typeName='+ item.typeName}" th:text="${item.typeName}"></a></td>
+        <td th:text="${item.quantity}">-</td>
+        <td th:text="${#numbers.formatDecimal(item.price, 0, 'COMMA', 2, 'POINT')}">-</td>
+        <td th:text="${#numbers.formatDecimal(item.price*item.quantity, 0, 'COMMA', 2, 'POINT')}">-</td>
+        <td th:with="profit=${item.price*item.quantity-(item.brokerFee*item.buyPrice + item.transactionTax*item.price*item.quantity + item.buyPrice)}"
+            th:text="${#strings.equals(item.transactionType,'SELL') ? #numbers.formatDecimal(profit, 0, 'COMMA', 2, 'POINT') : '-'}"
+            th:classappend="${(profit > 0)?'transaction-cell-profit':'transaction-cell-loss'}">-
+        </td>
+        <td th:text="${item.transactionType}">-</td>
+        <td th:text="${item.clientName}">-</td>
+        <td th:text="${item.debug}">-</td>
+    </tr>
+</table>
+</body>
+</html>

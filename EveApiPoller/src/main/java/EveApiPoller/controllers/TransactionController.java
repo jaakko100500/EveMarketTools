@@ -1,7 +1,7 @@
-package EveMarketTools.controllers;
+package EveApiPoller.controllers;
 
-import EveMarketTools.domain.RichTransaction;
-import EveMarketTools.domain.RichTransactionRepository;
+import Common.domain.RichTransaction;
+import Common.domain.RichTransactionRepository;
 import com.beimin.eveapi.exception.ApiException;
 import com.google.common.collect.Lists;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,7 +18,7 @@ public class TransactionController {
     private RichTransactionRepository richTransactionRepository;
 
     @RequestMapping("transactions")
-    public String greeting(@RequestParam(value = "name", required = false, defaultValue = "World") String name, Model model) throws ApiException {
+    public String greeting(Model model) throws ApiException {
         List<RichTransaction> richTransactions = Lists.newArrayList(richTransactionRepository.findAll());
 
         model.addAttribute("list", richTransactions);

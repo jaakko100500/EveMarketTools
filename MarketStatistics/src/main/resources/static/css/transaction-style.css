@@ -1,0 +1,11 @@
+.transaction-row-buy {
+    background: lightgray;
+}
+
+.transaction-row-sell .transaction-cell-profit {
+    background: lightgreen;
+}
+
+.transaction-row-sell .transaction-cell-loss {
+    background: lightcoral;
+}

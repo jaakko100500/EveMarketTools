@@ -1,4 +1,4 @@
-package EveMarketTools.domain;
+package Common.domain;
 
 import com.beimin.eveapi.shared.wallet.transactions.ApiWalletTransaction;
 
@@ -9,7 +9,7 @@ import javax.persistence.Table;
 import java.util.Date;
 
 @Entity
-@Table(indexes = @Index(columnList = "transactionDate"))
+@Table(indexes = {@Index(columnList = "transactionDate"), @Index(columnList = "unprocessedQuantity"), @Index(columnList = "typeName")})
 public class RichTransaction {
     @Id
     private Long id;
@@ -45,7 +45,7 @@ public class RichTransaction {
         this.transactionType = walletTransaction.getTransactionType().equals("buy") ? TransactionTypeEnum.BUY : TransactionTypeEnum.SELL;
 
         this.unprocessedQuantity = quantity;
-        this.debug="";
+        this.debug = "";
 
         this.brokerFee = 0.0075d;
         this.transactionTax = 0.0075d;

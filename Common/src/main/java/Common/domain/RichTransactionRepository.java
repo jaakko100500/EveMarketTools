@@ -1,10 +1,11 @@
-package EveMarketTools.domain;
+package Common.domain;
 
-import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.CrudRepository;
-import org.springframework.data.repository.Repository;
 
+import java.time.LocalDate;
+import java.time.ZonedDateTime;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
@@ -14,4 +15,11 @@ public interface RichTransactionRepository extends CrudRepository<RichTransactio
 
     @Query("select richTransaction from RichTransaction richTransaction where richTransaction.unprocessedQuantity > 0 order by transactionDate asc")
     public List<RichTransaction> findUnprocessedOrders();
+
+    List<RichTransaction> findByTypeNameOrderByTransactionDateDesc(String typeName);
+
+    List<RichTransaction> findByTransactionDateBetweenOrderByTransactionDateDesc(Date date, Date localDate);
+
+    @Query("select richTransaction from RichTransaction richTransaction order by transactionDate desc")
+    List<RichTransaction> findAllOrderByTransactionDateDesc();
 }

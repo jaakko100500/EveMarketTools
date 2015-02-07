@@ -1,4 +1,4 @@
-package EveMarketTools.services;
+package EveApiPoller.services;
 
 import com.beimin.eveapi.account.characters.CharactersParser;
 import com.beimin.eveapi.account.characters.CharactersResponse;

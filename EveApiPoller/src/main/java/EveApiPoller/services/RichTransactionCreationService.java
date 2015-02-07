@@ -1,8 +1,8 @@
-package EveMarketTools.services;
+package EveApiPoller.services;
 
-import EveMarketTools.domain.RichTransaction;
-import EveMarketTools.domain.RichTransactionRepository;
-import EveMarketTools.domain.TransactionTypeEnum;
+import Common.domain.RichTransaction;
+import Common.domain.RichTransactionRepository;
+import Common.domain.TransactionTypeEnum;
 import com.beimin.eveapi.character.wallet.transactions.WalletTransactionsParser;
 import com.beimin.eveapi.exception.ApiException;
 import com.beimin.eveapi.shared.wallet.transactions.ApiWalletTransaction;
@@ -91,6 +91,7 @@ public class RichTransactionCreationService {
     }
 
     private void fillBuyPrices() {
+        int filledBuyPrices = 0;
         List<RichTransaction> unprocessedRichTransactions = richTransactionRepository.findUnprocessedOrders();
 
         ListMultimap<YoKey, RichTransaction> richTransactionsByTypeName = ArrayListMultimap.create();
@@ -100,7 +101,6 @@ public class RichTransactionCreationService {
 
 
         for (RichTransaction unprocessedRichTransaction : unprocessedRichTransactions) {
-            logger.info("Processing {}",unprocessedRichTransaction.typeName);
             if (unprocessedRichTransaction.transactionType == TransactionTypeEnum.SELL) {
                 RichTransaction sellRichTransaction = unprocessedRichTransaction;
                 YoKey yoKey = new YoKey(sellRichTransaction.typeName, TransactionTypeEnum.BUY);
@@ -139,8 +139,11 @@ public class RichTransactionCreationService {
                 sellRichTransaction.unprocessedQuantity = 0;
                 richTransactionRepository.save(buyRichTransactions);
                 richTransactionRepository.save(sellRichTransaction);
+
+                filledBuyPrices++;
             }
         }
+        logger.info("{} buyPrices filled.",filledBuyPrices);
     }
 
 
