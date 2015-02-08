@@ -7,6 +7,7 @@
     <link th:href="@{/css/transaction-style.css}" rel="stylesheet" media="screen"/>
 </head>
 <body>
+<div th:replace="fragments/header :: header"></div>
 <table class="table">
     <tr>
         <th>Date</th>
@@ -15,23 +16,33 @@
         <th>Price</th>
         <th>Total price</th>
         <th>Profit</th>
-        <th>Buy/Sell</th>
         <th>Client</th>
         <th>Debug</th>
     </tr>
     <tr th:each="item : ${list}" class="transaction-row"
         th:classappend="${#strings.equals(item.transactionType,'BUY')}? 'transaction-row-buy':'transaction-row-sell'">
         <td th:text="${item.transactionDate}">-</td>
-        <td ><a th:href="${'transactions?typeName='+ item.typeName}" th:text="${item.typeName}"></a></td>
+        <td><a th:href="${'transactions?typeName='+ item.typeName}" th:text="${item.typeName}"></a></td>
         <td th:text="${item.quantity}">-</td>
         <td th:text="${#numbers.formatDecimal(item.price, 0, 'COMMA', 2, 'POINT')}">-</td>
         <td th:text="${#numbers.formatDecimal(item.price*item.quantity, 0, 'COMMA', 2, 'POINT')}">-</td>
-        <td th:with="profit=${item.price*item.quantity-(item.brokerFee*item.buyPrice + item.transactionTax*item.price*item.quantity + item.buyPrice)}"
+        <td th:with="sellPrice=${item.price*item.quantity},
+                     buyPrice=${item.buyPrice},
+                     buyBrokersFee=${item.brokerFee*buyPrice},
+                     sellBrokersFee=${item.brokerFee*sellPrice},
+                     transactionTax=${item.transactionTax*sellPrice},
+                     profit=${sellPrice - (buyBrokersFee+sellBrokersFee+transactionTax+buyPrice)}"
+            th:title="           ${#numbers.formatDecimal(sellPrice, 0, 'COMMA', 2, 'POINT')} + ' Sell price'
+                      +'&#10;' + ${#numbers.formatDecimal(buyPrice, 0, 'COMMA', 2, 'POINT')} + ' Buy price'
+                      +'&#10;' + ${#numbers.formatDecimal(buyBrokersFee, 0, 'COMMA', 2, 'POINT')} + ' Buy brokers fee'
+                      +'&#10;' + ${#numbers.formatDecimal(sellBrokersFee, 0, 'COMMA', 2, 'POINT')} + ' Sell brokers fee'
+                      +'&#10;' + ${#numbers.formatDecimal(transactionTax, 0, 'COMMA', 2, 'POINT')} + ' Transaction tax'
+                      +'&#10;' + ${#numbers.formatDecimal(profit, 0, 'COMMA', 2, 'POINT')} + ' Profit'
+                      "
             th:text="${#strings.equals(item.transactionType,'SELL') ? #numbers.formatDecimal(profit, 0, 'COMMA', 2, 'POINT') : '-'}"
             th:classappend="${(profit > 0)?'transaction-cell-profit':'transaction-cell-loss'}">-
         </td>
-        <td th:text="${item.transactionType}">-</td>
-        <td th:text="${item.clientName}">-</td>
+        <td><a th:href="${'transactions?clientName='+ item.clientName}" th:text="${item.clientName}"></a></td>
         <td th:text="${item.debug}">-</td>
     </tr>
 </table>

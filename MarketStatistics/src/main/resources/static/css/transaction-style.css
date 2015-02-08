@@ -9,3 +9,11 @@
 .transaction-row-sell .transaction-cell-loss {
     background: lightcoral;
 }
+
+.transaction-details-block {
+    display: none;
+}
+
+.transaction-cell:hover + .transaction-details-block {
+    display: block;
+}

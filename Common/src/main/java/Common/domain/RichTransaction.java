@@ -9,13 +9,16 @@ import javax.persistence.Table;
 import java.util.Date;
 
 @Entity
-@Table(indexes = {@Index(columnList = "transactionDate"), @Index(columnList = "unprocessedQuantity"), @Index(columnList = "typeName")})
+@Table(indexes = {
+        @Index(columnList = "transactionDate"),
+        @Index(columnList = "unprocessedQuantity"),
+        @Index(columnList = "typeName"),
+        @Index(columnList = "transactionType"),
+        @Index(columnList = "clientName")
+})
 public class RichTransaction {
     @Id
     private Long id;
-
-    public static final double TRANSACTION_TAX_PERCENT = 0.0075d;
-    public static final double BROKER_FEE_PERCENT = 0.0075d;
     public String typeName;
     public Date transactionDate;
     public int quantity;
@@ -47,7 +50,7 @@ public class RichTransaction {
         this.unprocessedQuantity = quantity;
         this.debug = "";
 
-        this.brokerFee = 0.0075d;
+        this.brokerFee = 0.0058d;
         this.transactionTax = 0.0075d;
         this.buyPrice = 0d;
     }
