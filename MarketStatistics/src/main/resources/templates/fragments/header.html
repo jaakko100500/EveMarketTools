@@ -17,9 +17,9 @@
         <div id="navbar" class="navbar-collapse collapse">
             <ul class="nav navbar-nav">
                 <li><a th:href="@{/transactions}">Latest transactions</a></li>
-                <li><a th:href="@{/profitability/1}">Item Profitability today</a></li>
-                <li><a th:href="@{/profitability/7}">Item Profitability last 7 days</a></li>
-                <li><a href="#">Wallet History</a></li>
+                <li><a th:href="@{/profitability?days=1}">Item Profitability last 24h</a></li>
+                <li><a th:href="@{/profitability?days=7}">Item Profitability last 7d</a></li>
+                <li><a th:href="@{/totalWealth}">Wallet History</a></li>
             </ul>
         </div><!--/.nav-collapse -->
     </div><!--/.container-fluid -->

@@ -1,7 +1,7 @@
 package MarketStatistics.controllers;
 
 import Common.domain.RichTransaction;
-import Common.domain.RichTransactionRepository;
+import Common.repositories.RichTransactionRepository;
 import com.beimin.eveapi.exception.ApiException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;

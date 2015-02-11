@@ -39,7 +39,7 @@
                       +'&#10;' + ${#numbers.formatDecimal(transactionTax, 0, 'COMMA', 2, 'POINT')} + ' Transaction tax'
                       +'&#10;' + ${#numbers.formatDecimal(profit, 0, 'COMMA', 2, 'POINT')} + ' Profit'
                       "
-            th:text="${#strings.equals(item.transactionType,'SELL') ? #numbers.formatDecimal(profit, 0, 'COMMA', 2, 'POINT') : '-'}"
+            th:text="${#strings.equals(item.transactionType,'SELL') ? #numbers.formatDecimal(profit, 0, 'COMMA', 2, 'POINT') + ' (' + #numbers.formatDecimal(profit/sellPrice*100, 0, 'COMMA', 2, 'POINT') + ' %)' : '-'}"
             th:classappend="${(profit > 0)?'transaction-cell-profit':'transaction-cell-loss'}">-
         </td>
         <td><a th:href="${'transactions?clientName='+ item.clientName}" th:text="${item.clientName}"></a></td>

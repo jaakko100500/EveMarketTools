@@ -1,0 +1,28 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Transactions</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <link href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap.min.css" rel="stylesheet"/>
+    <link th:href="@{/css/transaction-style.css}" rel="stylesheet" media="screen"/>
+</head>
+<body>
+<div th:replace="fragments/header :: header"></div>
+<table class="table">
+    <tr>
+        <th>Date</th>
+        <th>Total</th>
+        <th>Wallet Balance</th>
+        <th>Buy Orders Value</th>
+        <th>Sell Orders Value</th>
+    </tr>
+    <tr th:each="item : ${list}">
+        <td th:text="${item.created}"></td>
+        <td th:text="${#numbers.formatDecimal(item.balance + item.buyOrdersValue + item.sellOrdersValue, 0, 'COMMA', 2, 'POINT')}">-</td>
+        <td th:text="${#numbers.formatDecimal(item.balance, 0, 'COMMA', 2, 'POINT')}">-</td>
+        <td th:text="${#numbers.formatDecimal(item.buyOrdersValue, 0, 'COMMA', 2, 'POINT')}">-</td>
+        <td th:text="${#numbers.formatDecimal(item.sellOrdersValue, 0, 'COMMA', 2, 'POINT')}">-</td>
+    </tr>
+</table>
+</body>
+</html>

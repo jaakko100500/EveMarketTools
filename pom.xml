@@ -10,6 +10,7 @@
         <module>EveApiPoller</module>
         <module>Common</module>
         <module>MarketStatistics</module>
+        <module>ProfitableItemFinder</module>
     </modules>
     <packaging>pom</packaging>
 

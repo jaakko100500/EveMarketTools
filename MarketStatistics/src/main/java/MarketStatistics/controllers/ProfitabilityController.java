@@ -1,15 +1,14 @@
 package MarketStatistics.controllers;
 
-import Common.domain.ItemProfitabilityRepository;
+import Common.repositories.ItemProfitabilityRepository;
 import com.beimin.eveapi.exception.ApiException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import java.time.ZonedDateTime;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
@@ -18,8 +17,8 @@ public class ProfitabilityController {
     @Autowired
     private ItemProfitabilityRepository itemProfitabilityRepository;
 
-    @RequestMapping(value = "profitability/{days}", params = {})
-    public String getTransactions(@PathVariable Integer days,
+    @RequestMapping(value = "profitability", params = {})
+    public String getTransactions(@RequestParam Integer days,
                                   Model model) throws ApiException {
         ZonedDateTime to = ZonedDateTime.now();
         ZonedDateTime from = to.minusDays(days);

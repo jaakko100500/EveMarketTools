@@ -1,4 +1,4 @@
-package EveApiPoller.services;
+package Common.services;
 
 import com.beimin.eveapi.account.characters.CharactersParser;
 import com.beimin.eveapi.account.characters.CharactersResponse;
